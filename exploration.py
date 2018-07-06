@@ -5,6 +5,7 @@ from collections import namedtuple
 import random
 import copy
 from queue import Queue, PriorityQueue, LifoQueue
+import gym
 
 Unit = namedtuple('Unit', ('state', 'action','reward'))
 
@@ -143,46 +144,56 @@ class exploration(object):
 					#print('----',id(v))
 					q.put(v)
 
-	# def a_star_search(self):
-	# 	visit_states = set()
-	# 	s_cnt = 0
+	def bfs_gym(self):
+		env = gym.make('MountainCar-v0')
+		action_size = env.action_space.n
+		my_hash = state_hash()
 
-	# 	q = PriorityQueue()
-	# 	q.put(node([], 0), 1.0)
-		
-	# 	while not q.empty():
-	# 		u = q.get_nowait()
-			
-	# 		for next in graph.neighbors(current):
-	# 			new_cost = cost_so_far[current] + graph.cost(current, next)
-	# 			if next not in cost_so_far or new_cost < cost_so_far[next]:
-	# 				cost_so_far[next] = new_cost
-	# 				priority = new_cost
-	# 				frontier.put(next, priority)
-	# 				came_from[next] = current
-
-	# 		for action in xrange(ACTION_SIZE):
-	# 			# go to that state
-	# 			self.game_state.reset()
-	# 			for act in u.action_seq:
-	# 				self.game_state.process(act)
-	# 				self.game_state.update()
-	# 			# try actions
-	# 			self.game_state.process(action)
-	# 			self.game_state.update()
-	# 			if self.game_state.terminal:
-	# 				print('Done ', len(u.action_seq), u.action_seq, action, u.total_reward + self.game_state.reward)
-	# 				continue
-	# 			self.game_state.s_t.flags.writeable = False
-	# 			if not visited(self.game_state.s_t):
-	# 				record_visit(self.game_state.s_t)
-	# 				s_cnt += 1
-	# 				if s_cnt % 1000 == 0:
-	# 					print('s_cnt: ', s_cnt)
-	# 				v = copy.deepcopy(u)
-	# 				v.action_seq.append(action)
-	# 				v.total_reward += self.game_state.reward
-	# 				q.put(v)
+		q = Queue()
+		q.put(node([], 0)) # initial state
+		#best_path = None
+		#max_r = -1000
+		cnt = 0
+		while True:
+			cnt += 1
+			if cnt % 2000 == 0:
+				print(cnt)
+			if q.empty():
+				break
+			u = q.get_nowait()
+			#print(u.action_seq, u.total_reward)
+			#print('###', id(u))
+			for action in xrange(action_size):
+				# go to that state
+				env.reset()
+				for act in u.action_seq:
+					env.step(act)
+					#acc_r += reward
+				# try actions
+				ob, reward, done, _ = env.step(action)
+				#acc_r += reward
+				if done:
+					# for act in u.action_seq:
+					# 	self.trajectories.add_unit(None, act, )
+					print('Done ', len(u.action_seq), u.action_seq, action, u.total_reward + reward)
+					#print(id(u))
+					return
+				# if len(u.action_seq)==1 and u.action_seq[0]==2 and action==4:
+				# 	print('here')
+				# 	print(self.game_state.s_t)
+				# 	exit()
+				ob = ob * 1000
+				ob = ob.astype(int)
+				ob.flags.writeable = False
+				if not my_hash.visited(ob):
+					# if len(u.action_seq)==1 and u.action_seq[0]==2 and action==4:
+					# 	print('here2')
+					my_hash.record_visit(ob)
+					v = copy.deepcopy(u)
+					v.action_seq.append(action)
+					v.total_reward += reward
+					#print('----',id(v))
+					q.put(v)
 
 	def dfs(self):
 		my_hash = state_hash()
@@ -219,6 +230,11 @@ class exploration(object):
 if __name__ == "__main__":
 	e = exploration()
 	#e.random_exploration()
-	e.bfs()
+	e.bfs_gym()
 	#e.dfs()
-	print('Total Interaction = ', e.game_state.game.interact_cnt)
+	#print('Total Interaction = ', e.game_state.game.interact_cnt)
+
+
+# result of Mountain car
+
+# Done  101 [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2] 1 -102.0
